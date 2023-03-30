@@ -1,4 +1,5 @@
 import math
+import random
 from matplotlib import pyplot as plt
 
 class EllipticCurve:
@@ -29,6 +30,14 @@ class EllipticCurve:
         self.__quadratic_residues = set()
         self.__square_roots = {}
         self.__curve_points = []
+
+        self.__calculate_values()
+
+    def __calculate_values(self):
+        self.get_evaluation_results()
+        self.get_quadratic_residues()
+        self.get_square_roots()
+        self.get_curve_points()
 
     def get_a(self) -> int:
         """Get the a value of the equation.
@@ -64,6 +73,7 @@ class EllipticCurve:
         self.__evaluation_results = []
         self.__quadratic_residues = set()
         self.__square_roots = {}
+        self.__calculate_values()
 
     def set_b(self, b: int) -> None:
         """Set the b value of the equation.
@@ -75,6 +85,7 @@ class EllipticCurve:
         self.__evaluation_results = []
         self.__quadratic_residues = set()
         self.__square_roots = {}
+        self.__calculate_values()
 
     def set_prime(self, prime: int) -> None:
         """Set the prime number.
@@ -86,6 +97,7 @@ class EllipticCurve:
         self.__evaluation_results = []
         self.__quadratic_residues = set()
         self.__square_roots = {}
+        self.__calculate_values()
 
     def get_evaluation_results(self) -> list:
         """Calculate and store the evaluation results for the equation.
@@ -135,7 +147,11 @@ class EllipticCurve:
             for i in range(0, self.__prime):
                 evaluated_value = self.__evaluation_results[i]
 
-                if evaluated_value in self.get_quadratic_residues():
+                if evaluated_value in self.get_quadratic_residues() or evaluated_value == 0:
+                    if evaluated_value == 0:
+                        self.__curve_points.append((i, 0))
+                        continue
+
                     for root in self.__square_roots[evaluated_value]:
                         self.__curve_points.append((i, root))
 
@@ -196,7 +212,7 @@ class EllipticCurve:
             int: The multiplicative inverse of x.
         """
         u = x
-        v = 17
+        v = self.__prime
         x1 = 1
         x2 = 0
         try:
@@ -211,7 +227,7 @@ class EllipticCurve:
         except:
             return -1
 
-        return int(x1 % self.__prime)
+        return int(x1)
     
     def is_inverse_point(self, point1: tuple, point2: tuple) -> bool:
         """Check if two points are inverse.
@@ -232,16 +248,14 @@ class EllipticCurve:
         if point1 == point2:
             return self.point_doubling(point1)
         
-        if point1 == (math.inf, math.inf):
-            return point2
-        
-        if point2 == (math.inf, math.inf):
-            return point1
+        if point1 == (math.inf, math.inf) or point2 == (math.inf, math.inf):
+            return point2 if point1 == (math.inf, math.inf) else point1
         
         if self.is_inverse_point(point1, point2):
             return (math.inf, math.inf)
         
-        m = ((point2[1] - point1[1]) % self.__prime) * self.__get_modular_multiplicative_inverse((point2[0] - point1[0]) % self.__prime) % self.__prime
+        print(self.__get_modular_multiplicative_inverse((point2[0] - point1[0])), point2[0]- point1[0])
+        m = (((point2[1] - point1[1] % self.__prime)) * self.__get_modular_multiplicative_inverse((point2[0] - point1[0] % self.__prime))) % self.__prime
         x = (m**2 - point1[0] - point2[0]) % self.__prime
         y = (m * (point1[0] - x) - point1[1]) % self.__prime
 
@@ -278,7 +292,6 @@ class EllipticCurve:
     
     def is_a_generator_point(self, point: tuple) -> bool:
         """Check if a point is a generator point.
-
         Returns:
             bool: True if the point is a generator point, False otherwise.
         """
@@ -297,13 +310,11 @@ class EllipticCurve:
 
         
 if __name__ == '__main__':
-    curve = EllipticCurve(2, 2, 17)
-    curve.get_evaluation_results()
-    curve.get_quadratic_residues()
-    curve.get_square_roots()
-    curve.get_curve_points()
+    curve = EllipticCurve(10, 1, 11)
+    curve_points = curve.get_curve_points()
+    print(curve.point_addition((10,10), (0, 1)))
+
     
 
-    print(curve.is_a_generator_point((5, 1)))
 
 
