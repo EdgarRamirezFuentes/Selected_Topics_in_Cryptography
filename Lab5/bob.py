@@ -33,28 +33,32 @@ while True:
         # Establish connection with client.
         c, addr = s.accept()
 
-        # receive data from the client and decoding to get the string.
-        data = c.recv(1024)
+        print('Got connection from', addr)
+
+        # Receive public key from client
+        pem_public_key = c.recv(1024)
     
         # Convert PEM object to public key object
-        sender_public_key = serialization.load_pem_public_key(
-            data,
+        client_public_key = serialization.load_pem_public_key(
+            pem_public_key,
             backend=default_backend()
         )
 
-        # Send public key to client
-        c.send(public_key.public_bytes(
+
+        # Respond to client with public key
+        c.sendall(public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         ))
             
-        shared_key = private_key.exchange(ec.ECDH(), sender_public_key)
+        shared_key = private_key.exchange(ec.ECDH(), client_public_key)
 
+        # Using a Hash-based Key Derivation Function (HKDF) to derive a symmetric encryption key
         encryption_key = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
             salt=None,
-            info=b'handshake data',
+            info=b'',
             backend=default_backend()
         ).derive(shared_key)
     
@@ -78,9 +82,11 @@ while True:
         reply_cyphertext = reply_aesgcm.encrypt(reply_nonce, reply_message, reply_aad)
 
         # Send nonce, aad and cyphertext to Alice
-        c.send(reply_nonce)
-        c.send(reply_aad)
-        c.send(reply_cyphertext)
+        c.sendall(reply_nonce)
+        c.sendall(reply_aad)
+        c.sendall(reply_cyphertext)
 
-        # Close the connection with the client
-        c.close()
+        break
+
+# Close the connection with the client
+c.close()

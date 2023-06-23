@@ -24,18 +24,18 @@ port = 80
 # connect to the server on local computer
 s.connect(('localhost', port))
 
-# send data to the server
-s.send(public_key.public_bytes(
+# Send the public key to the server
+s.sendall(public_key.public_bytes(
     encoding=serialization.Encoding.PEM,
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 ))
 
-# receive data from the server and decoding to get the string.
-data = s.recv(1024)
+# receive public key from the server
+pem_public_key = s.recv(1024)
 
 # Convert PEM object to public key object
 sender_public_key = serialization.load_pem_public_key(
-    data,
+    pem_public_key,
     backend=default_backend()
 )
 
@@ -45,21 +45,21 @@ encryption_key = HKDF(
     algorithm=hashes.SHA256(),
     length=32,
     salt=None,
-    info=b'handshake data',
+    info=b'',
     backend=default_backend()
 ).derive(shared_key)
 
 # Sending message encrypted with shared key using AES in GCM mode
-message = b'Hello Alice!'
+message = b'Hello Bob!'
 aad = b'authenticated but unencrypted data'
 aesgcm = AESGCM(encryption_key)
 nonce = os.urandom(12)
 cyphertext = aesgcm.encrypt(nonce, message, aad)
 
 # Send nonce, aad and cyphertext to Bob
-s.send(nonce)
-s.send(aad)
-s.send(cyphertext)
+s.sendall(nonce)
+s.sendall(aad)
+s.sendall(cyphertext)
 
 # Receive nonce, aad and cyphertext from Bob
 nonce = s.recv(1024)
@@ -75,4 +75,3 @@ print('Bob says: ' + plaintext)
 
 # close the connection
 s.close()
-

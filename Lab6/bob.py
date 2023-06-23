@@ -1,5 +1,5 @@
 import socket
-import sys
+import json
 
 from utils import (
     verify_signature,
@@ -8,36 +8,36 @@ from utils import (
 
 if __name__ == '__main__':
     s = socket.socket()
-    port = 8080
+    port = 80
     s.bind(('', port))
     s.listen(5)
 
-    # Generate keys
-    if not generate_keys('bob'):
-        print("Error generating keys!")
-        sys.exit(1)
-
     while True:
         c, addr = s.accept()
+        print('Got connection from', addr)
 
         # Receive file data
         signature = c.recv(1024)
-        username = c.recv(1024).decode('utf-8')
-        image_name = c.recv(1024).decode('utf-8')
+        file_info = json.loads(c.recv(1024))
 
-        with open(f'./files/{image_name}', 'rb') as f:
-            data = f.read()
+        filename = file_info['filename']
+        sender_name = file_info['sender_name']
+
+        with open(f'./files/{filename}', 'rb') as f:
+            file_bytes = f.read()
 
             # Verify signature
-            if verify_signature(username, data, signature):
+            if verify_signature(sender_name, file_bytes, signature):
                 print("Signature verified!")
             else:
                 print("Signature verification failed!")
 
             # Fake verification
-            if verify_signature('bob', data, signature):
+            if verify_signature('bob', file_bytes, signature):
                 print("Signature verified!")
             else:
                 print("Signature verification failed!")
 
-            f.close()
+            break
+
+    s.close()
